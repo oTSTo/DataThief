@@ -302,23 +302,45 @@ def shutdown_computer():
 def generate_help_message():
     help_message = """
 📋 **Lista Comandi e Stato**
+
+🛠️ **Gestione Keylogger**
 /startlog 🟢 READY
 /stoplog 🟢 READY
+
+📊 **Informazioni di Sistema**
 /infopc 🟢 READY
 /infofile 🟢 READY
 /rtask 🟢 READY
+
+💬 **Interazione con l'Utente**
 /popup 🟢 READY
+
+📷 **Gestione Media**
 /webcam 🟢 READY
 /screenshot 🟢 READY
 /changewp 🟢 READY
 /startrecaudio 🟢 READY
 /stoprecaudio 🟢 READY
+
+🚨 **Gestione Emergenze**
 /panic 🟢 READY
 /taskkill 🟢 READY
 /shutdown 🟢 READY
+
+👥 **Gestione Utenti**
 /users 🟢 READY
 /selectuser 🟢 READY
-/help 🟢 READY
+
+📂 **EsploraRisorse**
+/navigate <percorso> 🟢 READY - Naviga tra le cartelle.
+/list 🟢 READY - Elenca i file e le cartelle nella directory corrente.
+/delete <nome_file_o_cartella> 🟢 READY - Elimina un file o una cartella.
+/rename <vecchio_nome> <nuovo_nome> 🟢 READY - Rinomina un file o una cartella.
+/createfolder <nome_cartella> 🟢 READY - Crea una nuova cartella.
+/download <nome_file> 🟢 READY - Scarica un file dalla directory corrente.
+
+ℹ️ **Aiuto**
+/help 🟢 READY - Mostra questo messaggio di aiuto.
 
 🟢 READY: Comando funzionante
 🟡 PROGRESS: Comando in sviluppo
